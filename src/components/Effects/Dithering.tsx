@@ -1,6 +1,6 @@
 import React, { forwardRef, useMemo } from 'react'
 import { Uniform } from 'three'
-import { Effect } from 'postprocessing'
+import { BlendFunction, Effect } from 'postprocessing'
 
 const fragmentShader = /* glsl */`
   #define MAX_COLOR_DEPTH 256
@@ -129,6 +129,7 @@ type DitheringProps = {
   pattern: DitheringPattern,
   darkness: number,
   colorDepth: number,
+  mixBlendMode: BlendFunction,
 }
 
 let uPattern: DitheringPattern;
@@ -137,8 +138,9 @@ let uColorDepth: number;
 
 // Effect implementation
 class DitheringImpl extends Effect {
-  constructor({ pattern, darkness, colorDepth }: DitheringProps) {
+  constructor({ pattern, darkness, colorDepth, mixBlendMode }: DitheringProps) {
     super('Dithering', fragmentShader, {
+      blendFunction: mixBlendMode,
       uniforms: new Map([
         ['uPattern', new Uniform(pattern)],
         ['uDarkness', new Uniform(darkness)],
@@ -150,16 +152,21 @@ class DitheringImpl extends Effect {
     uColorDepth = colorDepth
   }
 
-  update(renderer, inputBuffer, deltaTime) {
+  update() {
     // Updates here
-    this.uniforms.get('uPattern').value = uPattern
-    this.uniforms.get('uDarkness').value = uDarkness
-    this.uniforms.get('uColorDepth').value = uColorDepth
+    const patternUniform = this.uniforms.get('uPattern');
+    if (patternUniform) patternUniform.value = uPattern;
+
+    const darknessUniform = this.uniforms.get('uDarkness');
+    if (darknessUniform) darknessUniform.value = uDarkness;
+
+    const colorDepthUniform = this.uniforms.get('uColorDepth');
+    if (colorDepthUniform) colorDepthUniform.value = uColorDepth;
 }
 }
 // Effect component
 export const Dithering = forwardRef(function Dithering
-({ pattern = DitheringPattern.BAYER_4, darkness = 0.5, colorDepth = 16 }: DitheringProps, ref: any) {
-  const effect = useMemo(() => new DitheringImpl({ pattern, darkness, colorDepth }), [colorDepth, darkness, pattern]);
-  return <primitive ref={ref} object={effect} dispose={null} />;
+({ pattern = DitheringPattern.BAYER_4, darkness = 0.5, colorDepth = 16, mixBlendMode = BlendFunction.NORMAL }: DitheringProps, ref: any) {
+  const effect = useMemo(() => new DitheringImpl({ pattern, darkness, colorDepth, mixBlendMode }), [colorDepth, darkness, pattern]);
+  return <primitive ref={ref} object={effect} dispose={null} depthWrite={false} />;
 });

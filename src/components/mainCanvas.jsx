@@ -4,10 +4,10 @@ import React, { Suspense, useEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Rebeca } from "./Rebeca-bones";
 import { MathUtils, SRGBColorSpace, Vector2 } from "three";
-import { useTexture } from "@react-three/drei";
-import { EffectComposer, ToneMapping, Vignette } from '@react-three/postprocessing'
+import { PerspectiveCamera, useTexture } from "@react-three/drei";
+import { DotScreen, EffectComposer, ToneMapping, Vignette } from '@react-three/postprocessing'
 import { Dithering, DitheringPattern } from "./Effects/Dithering";
-import { ToneMappingMode } from "postprocessing";
+import { BlendFunction, ToneMappingMode } from "postprocessing";
 
 
 function cover( texture, aspect ) {
@@ -34,14 +34,13 @@ const Background = ()=>{
 }
 
 function MainCanvas() {
-    const resolution = new Vector2(640, 480)
-
     return(
-    <Canvas className="w-screen min-h-screen" camera={{ position: [0.2, -0.2, 0.85], }} dpr={4/3} gl={{antialias: 'false'}}>
+    <Canvas className="w-screen min-h-screen" dpr={0.5} gl={{antialias: 'false'}}>
         <Background/>
+        <PerspectiveCamera makeDefault={true} position={[-0.05, 0, 1]} />
         <EffectComposer>
             <ToneMapping mode={ToneMappingMode.REINHARD2_ADAPTIVE} />
-            <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.2} colorDepth={16}/>
+            <Dithering pattern={DitheringPattern.BAYER_8} darkness={0.2} colorDepth={16}/>
             <Vignette eskil={false} offset={0.1} darkness={0.5} />
         </EffectComposer>
         <spotLight intensity={Math.PI * 10} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />
