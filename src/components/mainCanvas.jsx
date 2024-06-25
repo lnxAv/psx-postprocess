@@ -41,7 +41,7 @@ function MainCanvas() {
         <Background/>
         <EffectComposer>
             <ToneMapping mode={ToneMappingMode.REINHARD2_ADAPTIVE} />
-            <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.2}/>
+            <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.2} colorDepth={16}/>
             <Vignette eskil={false} offset={0.1} darkness={0.5} />
         </EffectComposer>
         <spotLight intensity={Math.PI * 10} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />

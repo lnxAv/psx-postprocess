@@ -6,6 +6,7 @@ const fragmentShader = /* glsl */`
   #define MAX_COLOR_DEPTH 256
   uniform float uDarkness;
   uniform int uColorDepth;
+  uniform int uPattern;
 
 	const float bayer_2x2[4] = float[](
 		0.0, 3./4.,
@@ -89,7 +90,25 @@ const fragmentShader = /* glsl */`
 
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   {
-      float dithering_value = dithering_pattern(gl_FragCoord.xy, bayer_4x4);
+      float dithering_value;
+      switch (uPattern) {
+        case 0:
+          dithering_value = dithering_pattern(gl_FragCoord.xy, bayer_2x2);
+          break;
+        case 1:
+          dithering_value = dithering_pattern(gl_FragCoord.xy, bayer_4x4);
+          break;
+        case 2:
+          dithering_value = dithering_pattern(gl_FragCoord.xy, bayer_8x8);
+          break;
+        case 3:
+          dithering_value = dithering_pattern(gl_FragCoord.xy, cluster_8x8);
+          break;
+        default:
+          dithering_value = dithering_pattern(gl_FragCoord.xy, bayer_4x4);
+          break;
+      }
+
       vec3 ditheredColor = vec3(
         reduce_color(inputColor.r, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
         reduce_color(inputColor.g, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
@@ -101,7 +120,7 @@ const fragmentShader = /* glsl */`
 
 export enum DitheringPattern {
   BAYER_2,
-  BAYER_4,
+  BAYER_4, // default
   BAYER_8,
   CLUSTER_8
 }
@@ -118,28 +137,29 @@ let uColorDepth: number;
 
 // Effect implementation
 class DitheringImpl extends Effect {
-  constructor(props: DitheringProps) {
+  constructor({ pattern, darkness, colorDepth }: DitheringProps) {
     super('Dithering', fragmentShader, {
       uniforms: new Map([
-        ['uPattern', new Uniform(props.pattern)],
-        ['uDarkness', new Uniform(props.darkness)],
-        ['uColorDepth', new Uniform(props.colorDepth)],
-    ]),
+        ['uPattern', new Uniform(pattern)],
+        ['uDarkness', new Uniform(darkness)],
+        ['uColorDepth', new Uniform(colorDepth)],
+    ])
     })
-
-    uPattern = props.pattern
-    uDarkness = props.darkness
-    uColorDepth = props.colorDepth
+    uPattern = pattern
+    uDarkness = darkness
+    uColorDepth = colorDepth
   }
 
-  update() {
+  update(renderer, inputBuffer, deltaTime) {
     // Updates here
-  }
+    this.uniforms.get('uPattern').value = uPattern
+    this.uniforms.get('uDarkness').value = uDarkness
+    this.uniforms.get('uColorDepth').value = uColorDepth
 }
-
+}
 // Effect component
 export const Dithering = forwardRef(function Dithering
-({ pattern = DitheringPattern.BAYER_4, darkness = 0.5, colorDepth = 16 }: DitheringProps, ref) {
-  const effect = useMemo(() => new DitheringImpl({pattern, darkness, colorDepth}), [colorDepth, darkness, pattern])
-  return <primitive ref={ref} object={effect} dispose={null} />
-})
+({ pattern = DitheringPattern.BAYER_4, darkness = 0.5, colorDepth = 16 }: DitheringProps, ref: any) {
+  const effect = useMemo(() => new DitheringImpl({ pattern, darkness, colorDepth }), [colorDepth, darkness, pattern]);
+  return <primitive ref={ref} object={effect} dispose={null} />;
+});
