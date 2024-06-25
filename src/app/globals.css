@@ -26,6 +26,10 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+canvas {
+  image-rendering: pixelated;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

@@ -44,7 +44,7 @@ export function Rebeca(props: JSX.IntrinsicElements['group']) {
           <group name="Character">
             <primitive object={nodes.root} />
             <skinnedMesh name="Cube" geometry={nodes.Cube.geometry} skeleton={nodes.Cube.skeleton} castShadow receiveShadow onClick={(e)=>actions.Look?.fadeIn(0.5).play()}>
-              <meshStandardMaterial map={texture} map-flipY={false} side={THREE.DoubleSide} clipShadows/>
+              <meshStandardMaterial map={texture} map-flipY={false} side={THREE.DoubleSide}/>
             </skinnedMesh>
           </group>
         </group>
