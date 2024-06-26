@@ -45,21 +45,21 @@ const fragmentShader = /* glsl */`
   float dithering_pattern(vec2 uv, float[4] pattern) {
     float ditherScale = 2.;
     vec2 slit = mod(uv, ditherScale);
-    float i = slit.y + slit.x * ditherScale;
+    int i = int(slit.y) + int(slit.x) * int(ditherScale);
     return pattern[int(i)];
   }
 
   float dithering_pattern(vec2 uv, float[16] pattern) {
     float ditherScale = 4.;
     vec2 slit = mod(uv, ditherScale);
-    float i = slit.y + slit.x * ditherScale;
+    int i = int(slit.y) + int(slit.x) * int(ditherScale);
     return pattern[int(i)];
   }
 
   float dithering_pattern(vec2 uv, float[64] pattern) {
     float ditherScale = 8.;
-    vec2 slit = mod(uv, ditherScale);
-    float i = slit.y + slit.x * ditherScale;
+    vec2 slit = mod((uv), ditherScale);
+    int i = int(slit.y) + int(slit.x) * int(ditherScale);
     return pattern[int(i)];
   }
 
@@ -82,8 +82,8 @@ const fragmentShader = /* glsl */`
       {
         val = div * float(i + 1);
       }
-      return val;
       i = i+1;
+      return val;
     }
     return val;
   }
@@ -129,7 +129,7 @@ type DitheringProps = {
   pattern: DitheringPattern,
   darkness: number,
   colorDepth: number,
-  mixBlendMode: BlendFunction,
+  blendFunction: BlendFunction,
 }
 
 let uPattern: DitheringPattern;
@@ -138,9 +138,9 @@ let uColorDepth: number;
 
 // Effect implementation
 class DitheringImpl extends Effect {
-  constructor({ pattern, darkness, colorDepth, mixBlendMode }: DitheringProps) {
+  constructor({ pattern, darkness, colorDepth, blendFunction }: DitheringProps) {
     super('Dithering', fragmentShader, {
-      blendFunction: mixBlendMode,
+      blendFunction,
       uniforms: new Map([
         ['uPattern', new Uniform(pattern)],
         ['uDarkness', new Uniform(darkness)],
@@ -166,7 +166,7 @@ class DitheringImpl extends Effect {
 }
 // Effect component
 export const Dithering = forwardRef(function Dithering
-({ pattern = DitheringPattern.BAYER_4, darkness = 0.5, colorDepth = 16, mixBlendMode = BlendFunction.NORMAL }: DitheringProps, ref: any) {
-  const effect = useMemo(() => new DitheringImpl({ pattern, darkness, colorDepth, mixBlendMode }), [colorDepth, darkness, pattern]);
+({ pattern = DitheringPattern.BAYER_4, darkness = 0.5, colorDepth = 16, blendFunction = BlendFunction.NORMAL }: DitheringProps, ref: any) {
+  const effect = useMemo(() => new DitheringImpl({ pattern, darkness, colorDepth, blendFunction }), [colorDepth, darkness, blendFunction, pattern]);
   return <primitive ref={ref} object={effect} dispose={null} depthWrite={false} />;
 });
