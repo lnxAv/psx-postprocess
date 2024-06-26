@@ -24,7 +24,6 @@ type ActionName = 'Look' | 'Stand'
 interface GLTFAction extends THREE.AnimationClip {
   name: ActionName
 }
-type ContextType = Record<string, React.ForwardRefExoticComponent<JSX.IntrinsicElements['skinnedMesh'] | JSX.IntrinsicElements['bone']>>
 
 export function Rebeca(props: JSX.IntrinsicElements['group']) {
   const group = useRef<THREE.Group>(null)
