@@ -104,7 +104,7 @@ const fragmentShader = /* glsl */`
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   {
       // take the color from tdiffuse
-      vec4 c = texture(tDiffuse, uv);
+      vec4 c = inputColor;
       float dithering_value;
       switch (uPattern) {
         case 0:
