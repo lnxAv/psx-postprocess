@@ -2,8 +2,21 @@ import React, { forwardRef, useMemo } from 'react'
 import { Uniform } from 'three'
 import { BlendFunction, Effect } from 'postprocessing'
 
+
+/*
+ * Dithering Effect
+ * FROM Various TO THREE.JS
+ * BY LnxAv (https://github.com/LnxAv)
+ * @Param {pattern} defines what pattern to use for dithering [ BAYER_2, BAYER_4, BAYER_8, CLUSTER_8 ]
+ * @Param {darkness} defines the darkness range of the dithering
+ * @Param {colorDepth} defines the color depth of the dithering
+ * @Param {blendFunction} defines the blend function of the dithering
+ * 
+*/
+
 const fragmentShader = /* glsl */`
   #define MAX_COLOR_DEPTH 256
+  uniform sampler2D tDiffuse;
   uniform float uDarkness;
   uniform int uColorDepth;
   uniform int uPattern;
@@ -90,6 +103,8 @@ const fragmentShader = /* glsl */`
 
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   {
+      // take the color from tdiffuse
+      vec4 c = texture(tDiffuse, uv);
       float dithering_value;
       switch (uPattern) {
         case 0:
@@ -110,9 +125,9 @@ const fragmentShader = /* glsl */`
       }
 
       vec3 ditheredColor = vec3(
-        reduce_color(inputColor.r, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
-        reduce_color(inputColor.g, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
-        reduce_color(inputColor.b, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1)
+        reduce_color(c.r, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
+        reduce_color(c.g, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
+        reduce_color(c.b, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1)
       );
       outputColor = vec4(ditheredColor, 1.);
   }
