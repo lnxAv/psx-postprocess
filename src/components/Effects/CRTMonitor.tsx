@@ -13,6 +13,7 @@ import { Effect } from 'postprocessing'
  * @Param {scanlineResolution} defines the amount of scanlines in the x and y axis
  * @Param {scanlineSpeed} defines the speed of the scanlines
  * @Param {vignetteOpacity} defines the opacity of the vignette
+ * @Param {ghostingIntensity} defines the intensity of the ghosting on a x and y axis
  * 
 */
 
@@ -24,6 +25,7 @@ const fragmentShader = /* glsl */`
   uniform float uScanlineOpacity;
   uniform vec2 uScanlineResolution;
   uniform float uVignetteOpacity;
+  uniform vec2 uGhostingIntensity;
   
   //? FUNCTIONS FROM https://babylonjs.medium.com/
   vec2 curveRemap(vec2 uv)
@@ -47,19 +49,37 @@ const fragmentShader = /* glsl */`
   }
   //? END FUNCTIONS
 
+  //? GHOSTING FUNCTION FROM ME
+  vec4 ghostingIntensity(vec4 color, vec2 uv)
+  {
+      vec4 offsetLeft = texture2D(tDiffuse, vec2(uv.x - uGhostingIntensity.x, uv.y));
+      vec4 offsetRight = texture2D(tDiffuse, vec2(uv.x + uGhostingIntensity.x, uv.y));
+      vec4 offsetUp = texture2D(tDiffuse, vec2(uv.x, uv.y - uGhostingIntensity.y));
+      vec4 offsetDown = texture2D(tDiffuse, vec2(uv.x, uv.y + uGhostingIntensity.y));
+      color = (color * 0.9) + (offsetLeft + offsetRight + offsetUp + offsetDown) * 0.1;
+      return color;
+  }
+  //? END GHOSTING FUNCTION
+
   void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   {
     vec2 remappedUV = curveRemap(vec2(uv));
 
     vec4 baseColor = inputColor;
+    
+    // ghosting
+    baseColor = ghostingIntensity(baseColor, uv);
+
     // vignette
     baseColor *= vignetteIntensity(remappedUV, uScanlineResolution, uVignetteOpacity);
-    // scan lines
 
+    // scan lines
     baseColor *= scanLineIntensity(remappedUV.x + (uTime * uScanlineSpeed) , uScanlineResolution.x, uScanlineOpacity);
     baseColor *= scanLineIntensity(remappedUV.y + (uTime * uScanlineSpeed) , uScanlineResolution.y, uScanlineOpacity);
+
     // gama correction
     baseColor *= vec4(vec3(uScanlineOpacity + 1.), 1.0);
+
     if (remappedUV.x < 0.0 || remappedUV.y < 0.0 || remappedUV.x > 1.0 || remappedUV.y > 1.0){
         outputColor = uColor;
     } else {
@@ -75,6 +95,7 @@ type CRTMonitorProps = {
   scanlineResolution?: [number, number],
   scanlineSpeed?: number
   vignetteOpacity?: number
+  ghostingIntensity?: [number, number]
 }
 
 let uCurvature: [number, number];
@@ -83,10 +104,11 @@ let uScanlineOpacity: number;
 let uScanlineResolution: [number, number];
 let uScanlineSpeed: number;
 let uVignetteOpacity: number;
+let uGhostingIntensity: [number, number];
 
 // Effect implementation
 class CRTMonitorImpl extends Effect {
-  constructor({ curvature = [5.5 , 5.5], color = [0, 0, 0, 0], scanlineOpacity = 0.1, scanlineResolution = [1024, 2080], vignetteOpacity = 0.5, scanlineSpeed = 0.001 }: CRTMonitorProps) {
+  constructor({ curvature = [5.5 , 5.5], color = [0, 0, 0, 0], scanlineOpacity = 0.1, scanlineResolution = [1024, 2080], vignetteOpacity = 0.5, scanlineSpeed = 0.001, ghostingIntensity = [0.009, 0.001] }: CRTMonitorProps) {
     super('CRTMonitor', fragmentShader, {
       uniforms: new Map<string, Uniform<any>>([
         ['uCurvature', new Uniform(curvature)],
@@ -95,6 +117,7 @@ class CRTMonitorImpl extends Effect {
         ['uScanlineResolution', new Uniform(scanlineResolution)],
         ['uScanlineSpeed', new Uniform(scanlineSpeed)],
         ['uVignetteOpacity', new Uniform(vignetteOpacity)],
+        ['uGhostingIntensity', new Uniform(ghostingIntensity)],
         ['uTime', new Uniform(0)],
     ]),
     })
@@ -105,6 +128,7 @@ class CRTMonitorImpl extends Effect {
     uScanlineResolution = scanlineResolution
     uVignetteOpacity = vignetteOpacity
     uScanlineSpeed = scanlineSpeed
+    uGhostingIntensity = ghostingIntensity
   }
 
   update( render: any, input: any, delta: number ) {
@@ -129,12 +153,16 @@ class CRTMonitorImpl extends Effect {
 
     const timeUniform = this.uniforms.get('uTime');
     if (timeUniform) timeUniform.value += delta;
+
+    const ghostingIntensityUniform = this.uniforms.get('uGhostingIntensity');
+    if (ghostingIntensityUniform) ghostingIntensityUniform.value = uGhostingIntensity;
+
   }
 }
 
 // Effect component
 export const CRTMonitor = forwardRef(function CRTMonitor
-({ curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity }: CRTMonitorProps, ref) {
-  const effect = useMemo(() => new CRTMonitorImpl({curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity}), [curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity])
+({ curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity }: CRTMonitorProps, ref) {
+  const effect = useMemo(() => new CRTMonitorImpl({curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity}), [curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity])
   return <primitive ref={ref} object={effect} dispose={null} />
 })
