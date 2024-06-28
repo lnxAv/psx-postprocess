@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import React, { useEffect, useRef } from 'react'
 import { useGLTF, useAnimations, useTexture } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
+import { useFrame } from '@react-three/fiber'
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -36,6 +37,12 @@ export function Rebeca(props: JSX.IntrinsicElements['group']) {
     }
   }, [] )
   
+  useFrame((state, delta)=>{
+    if(group.current){
+      group.current.rotation.y = state.clock.getElapsedTime() * 0.5
+      group.current.position.z = Math.min(-Math.sin(state.clock.getElapsedTime() * 0.5) * 2, 0.4)
+    }
+  })
   return (
     <group ref={group} {...props} dispose={null}>
       <group name="AuxScene">
@@ -43,7 +50,7 @@ export function Rebeca(props: JSX.IntrinsicElements['group']) {
           <group name="Character">
             <primitive object={nodes.root} />
             <skinnedMesh name="Cube" geometry={nodes.Cube.geometry} skeleton={nodes.Cube.skeleton} castShadow receiveShadow onClick={(e)=>actions.Look?.fadeIn(0.5).play()}>
-              <meshStandardMaterial map={texture} map-flipY={false} side={THREE.DoubleSide}/>
+              <meshStandardMaterial map={texture} map-flipY={false} side={THREE.DoubleSide} />
             </skinnedMesh>
           </group>
         </group>
