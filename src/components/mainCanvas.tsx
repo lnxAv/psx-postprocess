@@ -74,7 +74,7 @@ function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
         <EffectComposer>
             <ToneMapping mode={ToneMappingMode.NEUTRAL} />
             <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.5} colorDepth={16} blendFunction={BlendFunction.SCREEN}/>
-            <CRTMonitor/>
+            <CRTMonitor vignetteOpacity={1.5}/>
         </EffectComposer>
         <spotLight intensity={Math.PI * 1.5} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />
         <directionalLight intensity={0.2} position={[8, 20, 8]} castShadow />
