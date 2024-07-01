@@ -1,6 +1,6 @@
 import React, { forwardRef, useMemo } from 'react'
-import { Uniform } from 'three'
-import { Effect } from 'postprocessing'
+import {  Uniform } from 'three'
+import { Effect, EffectAttribute } from 'postprocessing'
 
 
 /*
@@ -14,6 +14,7 @@ import { Effect } from 'postprocessing'
  * @Param {scanlineSpeed} defines the speed of the scanlines
  * @Param {vignetteOpacity} defines the opacity of the vignette
  * @Param {ghostingIntensity} defines the intensity of the ghosting on a x and y axis
+ * @Param {screenClampRange} defines the range of the screen clamp
  * 
 */
 
@@ -26,6 +27,8 @@ const fragmentShader = /* glsl */`
   uniform vec2 uScanlineResolution;
   uniform float uVignetteOpacity;
   uniform vec2 uGhostingIntensity;
+  uniform float uScreenClampRange;
+  uniform float uGamaCorrection;
   
   //? FUNCTIONS FROM https://babylonjs.medium.com/
   vec2 curveRemap(vec2 uv)
@@ -49,27 +52,29 @@ const fragmentShader = /* glsl */`
   }
   //? END FUNCTIONS
 
-  //? GHOSTING FUNCTION FROM ME
-  vec4 ghostingIntensity(vec4 color, vec2 uv)
-  {
-      vec4 offsetLeft = texture2D(tDiffuse, vec2(uv.x - uGhostingIntensity.x, uv.y));
-      vec4 offsetRight = texture2D(tDiffuse, vec2(uv.x + uGhostingIntensity.x, uv.y));
-      vec4 offsetUp = texture2D(tDiffuse, vec2(uv.x, uv.y - uGhostingIntensity.y));
-      vec4 offsetDown = texture2D(tDiffuse, vec2(uv.x, uv.y + uGhostingIntensity.y));
-      color = (color * 0.9) + (offsetLeft + offsetRight + offsetUp + offsetDown) * 0.1;
-      return color;
+  //? Screen Clamp Function
+  vec4 screenClamp(vec4 color, vec2 uv){
+    float range = uScreenClampRange / 100.;
+    vec4 clampedColor = color;
+    if(uv.y < range ){
+      clampedColor = texture2D(inputBuffer, vec2(uv.x , uv.y - range));
+    }
+    if(uv.y > 1. - range){
+      clampedColor = texture2D(inputBuffer, vec2(uv.x , uv.y + range));
+    }
+    return clampedColor;
   }
-  //? END GHOSTING FUNCTION
+  //? END Screen Clamp Function
 
-  void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
+  void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor)
   {
     vec2 remappedUV = curveRemap(vec2(uv));
 
     vec4 baseColor = inputColor;
-    
-    // ghosting
-    baseColor = ghostingIntensity(baseColor, uv);
 
+    // screen clamp
+    baseColor = screenClamp(baseColor,remappedUV);
+    
     // vignette
     baseColor *= vignetteIntensity(remappedUV, uScanlineResolution, uVignetteOpacity);
 
@@ -78,7 +83,7 @@ const fragmentShader = /* glsl */`
     baseColor *= scanLineIntensity(remappedUV.y + (uTime * uScanlineSpeed) , uScanlineResolution.y, uScanlineOpacity);
 
     // gama correction
-    baseColor *= vec4(vec3(uScanlineOpacity + 1.), 1.0);
+    baseColor *= vec4(vec3(uScanlineOpacity + uGamaCorrection), 1.0);
 
     if (remappedUV.x < 0.0 || remappedUV.y < 0.0 || remappedUV.x > 1.0 || remappedUV.y > 1.0){
         outputColor = uColor;
@@ -95,7 +100,9 @@ type CRTMonitorProps = {
   scanlineResolution?: [number, number],
   scanlineSpeed?: number
   vignetteOpacity?: number
-  ghostingIntensity?: [number, number]
+  ghostingIntensity?: [number, number],
+  screenClampRange?: number,
+  gammaCorrection?: number,
 }
 
 let uCurvature: [number, number];
@@ -105,11 +112,14 @@ let uScanlineResolution: [number, number];
 let uScanlineSpeed: number;
 let uVignetteOpacity: number;
 let uGhostingIntensity: [number, number];
+let uScreenClampRange: number;
+let uGamaCorrection: number;
 
 // Effect implementation
 class CRTMonitorImpl extends Effect {
-  constructor({ curvature = [5.5 , 5.5], color = [0, 0, 0, 0], scanlineOpacity = 0.1, scanlineResolution = [1024, 2080], vignetteOpacity = 0.5, scanlineSpeed = 0.001, ghostingIntensity = [0.009, 0.001] }: CRTMonitorProps) {
+  constructor({ curvature = [5.5 , 5.5], color = [0, 0, 0, 0], scanlineOpacity = 0.1, scanlineResolution = [1024, 2080], vignetteOpacity = 0.5, scanlineSpeed = 0.001, ghostingIntensity = [1, 1], screenClampRange = 1., gammaCorrection = 0.8 } : CRTMonitorProps) {
     super('CRTMonitor', fragmentShader, {
+      attributes: EffectAttribute.DEPTH,
       uniforms: new Map<string, Uniform<any>>([
         ['uCurvature', new Uniform(curvature)],
         ['uColor', new Uniform(color)],
@@ -118,10 +128,11 @@ class CRTMonitorImpl extends Effect {
         ['uScanlineSpeed', new Uniform(scanlineSpeed)],
         ['uVignetteOpacity', new Uniform(vignetteOpacity)],
         ['uGhostingIntensity', new Uniform(ghostingIntensity)],
+        ['uScreenClampRange', new Uniform(screenClampRange)],
+        ['uGamaCorrection', new Uniform(gammaCorrection)],
         ['uTime', new Uniform(0)],
     ]),
     })
-
     uCurvature = curvature
     uColor = color
     uScanlineOpacity = scanlineOpacity
@@ -129,6 +140,8 @@ class CRTMonitorImpl extends Effect {
     uVignetteOpacity = vignetteOpacity
     uScanlineSpeed = scanlineSpeed
     uGhostingIntensity = ghostingIntensity
+    uScreenClampRange = screenClampRange
+    uGamaCorrection = gammaCorrection
   }
 
   update( render: any, input: any, delta: number ) {
@@ -157,12 +170,17 @@ class CRTMonitorImpl extends Effect {
     const ghostingIntensityUniform = this.uniforms.get('uGhostingIntensity');
     if (ghostingIntensityUniform) ghostingIntensityUniform.value = uGhostingIntensity;
 
+    const screenClampRangeUniform = this.uniforms.get('uScreenClampRange');
+    if (screenClampRangeUniform) screenClampRangeUniform.value = uScreenClampRange;
+
+    const gammaCorrectionUniform = this.uniforms.get('uGamaCorrection');
+    if (gammaCorrectionUniform) gammaCorrectionUniform.value = uGamaCorrection;
   }
 }
 
 // Effect component
 export const CRTMonitor = forwardRef(function CRTMonitor
-({ curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity }: CRTMonitorProps, ref) {
-  const effect = useMemo(() => new CRTMonitorImpl({curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity}), [curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity])
+({ curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity, screenClampRange, gammaCorrection }: CRTMonitorProps, ref) {
+  const effect = useMemo(() => new CRTMonitorImpl({curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity, screenClampRange, gammaCorrection,}), [curvature, color, scanlineOpacity, scanlineResolution, vignetteOpacity, ghostingIntensity, screenClampRange, gammaCorrection])
   return <primitive ref={ref} object={effect} dispose={null} />
 })

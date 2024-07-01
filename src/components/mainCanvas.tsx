@@ -3,12 +3,13 @@
 import React, { Suspense, useEffect, useLayoutEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Rebeca } from "./Rebeca-bones";
-import { MathUtils, SRGBColorSpace, Vector2, ShaderChunk, Texture } from "three";
-import { CameraShake, PerspectiveCamera, useTexture } from "@react-three/drei";
-import {  EffectComposer, ToneMapping, Vignette } from '@react-three/postprocessing'
+import { MathUtils, SRGBColorSpace, ShaderChunk, Texture } from "three";
+import { CameraShake, PerspectiveCamera, Sphere, useTexture } from "@react-three/drei";
+import {  EffectComposer, ToneMapping } from '@react-three/postprocessing'
 import { Dithering, DitheringPattern } from "./Effects/Dithering";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
 import { CRTMonitor } from "./Effects/CRTMonitor";
+import { DepthCueing } from "./Effects/DepthCueing";
 
 function cover( texture: Texture, aspect: number ) {
     let imageAspect = texture.image.width / texture.image.height;
@@ -38,11 +39,10 @@ type PSXCanvasProps = {
 }
 
 function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
-    //~ MODIFY ENGINE VERTEX SHADER + TEXTURE MAPPING (by romanliutikov)
+    //~ MODIFY ENGINE VERTEX SHADER (by romanliutikov)
     useLayoutEffect(()=>{
         ShaderChunk.project_vertex = /* glsl */`
             vec4 mvPosition = vec4( transformed, 1.0 );
-
             // KEEP BATCHING (from three.js)
             #ifdef USE_BATCHING
                 mvPosition = batchingMatrix * mvPosition;
@@ -51,7 +51,6 @@ function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
             #ifdef USE_INSTANCING
                 mvPosition = instanceMatrix * mvPosition;
             #endif
-
             mvPosition = modelViewMatrix * mvPosition;
 
             vec2 resolution = vec2(${resolution[0]}, ${resolution[1]});
@@ -60,21 +59,21 @@ function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
             pos.xyz /= pos.w;
             pos.xy = (floor(resolution * pos.xy) ) / resolution ;
             pos.xyz *= pos.w;
-
             gl_Position = pos;
         `;
     }, [])
 
 
     return(
-    <Canvas className="w-screen min-h-screen" dpr={0.25} gl={{antialias: false}} style={{imageRendering: 'pixelated'}}>
+    <Canvas className="w-screen min-h-screen" dpr={0.25} gl={{antialias: false, depth: true, logarithmicDepthBuffer: true}} style={{imageRendering: 'pixelated'}}>
         <Background/>
-        <PerspectiveCamera makeDefault={true} position={[-0.05, 0, 1]} />
-        <CameraShake intensity={1} maxPitch={0.1} maxYaw={0.1} maxRoll={0.1} />
-        <EffectComposer>
+        <PerspectiveCamera makeDefault={true} position={[0, 0, 1]} far={20} near={0.1}/>
+        <CameraShake intensity={1} maxPitch={0.1} maxYaw={0.1} maxRoll={0.1}/>
+        <EffectComposer depthBuffer={true}>
             <ToneMapping mode={ToneMappingMode.NEUTRAL} />
             <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.5} colorDepth={16} blendFunction={BlendFunction.SCREEN}/>
-            <CRTMonitor vignetteOpacity={1.5}/>
+            <DepthCueing fogColor={[0.1, 0.1, 0.1, 1.0]}/>
+            <CRTMonitor vignetteOpacity={1.4} gammaCorrection={0.8} screenClampRange={1.2}/>
         </EffectComposer>
         <spotLight intensity={Math.PI * 1.5} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />
         <directionalLight intensity={0.2} position={[8, 20, 8]} castShadow />
