@@ -52,29 +52,12 @@ const fragmentShader = /* glsl */`
   }
   //? END FUNCTIONS
 
-  //? Screen Clamp Function
-  vec4 screenClamp(vec4 color, vec2 uv){
-    float range = uScreenClampRange / 100.;
-    vec4 clampedColor = color;
-    if(uv.y < range ){
-      clampedColor = texture2D(inputBuffer, vec2(uv.x , uv.y - range));
-    }
-    if(uv.y > 1. - range){
-      clampedColor = texture2D(inputBuffer, vec2(uv.x , uv.y + range));
-    }
-    return clampedColor;
-  }
-  //? END Screen Clamp Function
-
   void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor)
   {
     vec2 remappedUV = curveRemap(vec2(uv));
 
     vec4 baseColor = inputColor;
 
-    // screen clamp
-    baseColor = screenClamp(baseColor,remappedUV);
-    
     // vignette
     baseColor *= vignetteIntensity(remappedUV, uScanlineResolution, uVignetteOpacity);
 
