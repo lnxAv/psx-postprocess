@@ -70,9 +70,9 @@ function MainCanvas({resolution = [320, 240], jitterStrength = 0.75}: PSXCanvasP
         <CameraShake intensity={1} maxPitch={0.1} maxYaw={0.1} maxRoll={0.1}/>
         <EffectComposer depthBuffer={true} resolutionScale={320/240}>
             <ToneMapping mode={ToneMappingMode.NEUTRAL} />
-            <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.5} colorDepth={16} blendFunction={BlendFunction.SCREEN}/>
-            <DepthCueing nearOffset={0.04}/>
-            <CRTMonitor vignetteOpacity={1.6} gammaCorrection={0.8} screenClampRange={1.2}/>
+            <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.2} colorDepth={16} blendFunction={BlendFunction.SCREEN}/>
+            <DepthCueing nearOffset={0.04} fogDensity={0.1}/>
+            <CRTMonitor vignetteOpacity={1.6} gammaCorrection={0.9} screenClampRange={1.2}/>
         </EffectComposer>
         <spotLight intensity={Math.PI * 1.5} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />
         <directionalLight intensity={0.2} position={[8, 20, 8]} castShadow />
