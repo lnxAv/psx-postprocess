@@ -36,7 +36,7 @@ const Background = ()=>{
 
 type PSXCanvasProps = {
     resolution: [number, number],
-    jitterStrength: number
+    jitterStrength?: number
 }
 
 function MainCanvas({resolution = [320, 240], jitterStrength = 0.75}: PSXCanvasProps) {
