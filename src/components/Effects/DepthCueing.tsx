@@ -69,7 +69,7 @@ class DepthCueingImpl extends Effect {
 
 // Effect component
 export const DepthCueing = forwardRef(function DepthCueing
-({ fogColor, nearOffset }: DepthCueingProps, ref) {
-  const effect = useMemo(() => new DepthCueingImpl({fogColor, nearOffset}), [fogColor, nearOffset])
+({ fogColor, nearOffset, fogDensity }: DepthCueingProps, ref) {
+  const effect = useMemo(() => new DepthCueingImpl({fogColor, nearOffset, fogDensity}), [fogColor, nearOffset, fogDensity])
   return <primitive ref={ref} object={effect} dispose={null} />
 })
