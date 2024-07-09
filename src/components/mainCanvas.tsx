@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useLayoutEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Rebeca } from "./Rebeca-bones";
 import { MathUtils, SRGBColorSpace, ShaderChunk, Texture } from "three";
-import { CameraShake, PerspectiveCamera, Sphere, useTexture } from "@react-three/drei";
+import { CameraShake, PerspectiveCamera, useTexture } from "@react-three/drei";
 import {  EffectComposer, ToneMapping } from '@react-three/postprocessing'
 import { Dithering, DitheringPattern } from "./Effects/Dithering";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
@@ -35,11 +35,12 @@ const Background = ()=>{
 }
 
 type PSXCanvasProps = {
-    resolution: [number, number]
+    resolution: [number, number],
+    jitterStrength: number
 }
 
-function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
-    //~ MODIFY ENGINE VERTEX SHADER (by romanliutikov)
+function MainCanvas({resolution = [320, 240], jitterStrength = 0.75}: PSXCanvasProps) {
+    //~ MODIFY ENGINE VERTEX SHADER (by godot - Grau)
     useLayoutEffect(()=>{
         ShaderChunk.project_vertex = /* glsl */`
             vec4 mvPosition = vec4( transformed, 1.0 );
@@ -52,12 +53,11 @@ function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
                 mvPosition = instanceMatrix * mvPosition;
             #endif
             mvPosition = modelViewMatrix * mvPosition;
-
-            vec2 resolution = vec2(${resolution[0]}, ${resolution[1]});
+            // snapping
+            vec2 resolution = floor(vec2(${resolution[0]}, ${resolution[1]}) * (1. - ${jitterStrength}));
             vec4 pos = projectionMatrix * mvPosition;
-            float i = (1.0 - 0.5) * min(pos.x, pos.y);
             pos.xyz /= pos.w;
-            pos.xy = (floor(resolution * pos.xy) ) / resolution ;
+            pos.xy = floor(resolution * pos.xy) / resolution;
             pos.xyz *= pos.w;
             gl_Position = pos;
         `;
@@ -65,8 +65,7 @@ function MainCanvas({resolution = [320, 240]}: PSXCanvasProps) {
 
 
     return(
-    <Canvas className="w-screen min-h-screen" dpr={0.25} gl={{antialias: false, depth: true, logarithmicDepthBuffer: true}} style={{imageRendering: 'pixelated'}}>
-        <Background/>
+    <Canvas className="w-auto max-h-screen overflow-hidden" dpr={0.25} gl={{antialias: false, depth: true, logarithmicDepthBuffer: true}} style={{imageRendering: 'pixelated'}}>
         <PerspectiveCamera makeDefault={true} position={[0, 0, 1]} far={20} near={0.1}/>
         <CameraShake intensity={1} maxPitch={0.1} maxYaw={0.1} maxRoll={0.1}/>
         <EffectComposer depthBuffer={true} resolutionScale={320/240}>
