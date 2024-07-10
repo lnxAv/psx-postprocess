@@ -1,32 +1,41 @@
 'use client'
 
 import React, { Suspense, useEffect, useLayoutEffect } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Rebeca } from "./Rebeca-bones";
-import { MathUtils, SRGBColorSpace, ShaderChunk, Texture } from "three";
+import { MathUtils, RepeatWrapping, SRGBColorSpace, ShaderChunk, Texture } from "three";
 import { CameraShake, PerspectiveCamera, useTexture } from "@react-three/drei";
-import {  EffectComposer, ToneMapping } from '@react-three/postprocessing'
+import { EffectComposer, ToneMapping } from '@react-three/postprocessing'
 import { Dithering, DitheringPattern } from "./Effects/Dithering";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
 import { CRTMonitor } from "./Effects/CRTMonitor";
 import { DepthCueing } from "./Effects/DepthCueing";
 
-function cover( texture: Texture, aspect: number ) {
-    let imageAspect = texture.image.width / texture.image.height;
-    texture.matrixAutoUpdate = false;
-    if ( aspect < imageAspect ) {
-        texture.matrix.setUvTransform( 0, 0, aspect / imageAspect, 1, 0, 0.5, 0.5 );
-    } else {
-        texture.matrix.setUvTransform( 0, 0, 1, imageAspect / aspect, 0, 0.5, 0.5 );
-    }
-}
-
-const Background = ()=>{
+const Background = ({texturePath, fov = [180, 90]} : {texturePath: string, fov?: [number, number]})=>{
     const {scene} = useThree()
-    const bgTexture = useTexture('clouds-lim.png')
+    const bgTexture = useTexture(texturePath)
+
+    useFrame((r)=>{
+        const x = Math.atan(r.camera.position.z / r.camera.position.x)
+        const y = Math.asin(r.camera.position.y / r.camera.position.z)
+        let bgX = -x * (-1 * Math.PI ) % ( bgTexture.repeat.x ^ 2)
+        let bgY =  Math.min(1-bgTexture.repeat.y, Math.max(0, (1/ 2* (y * (-1 * Math.PI ))) + bgTexture.repeat.y /2 ))
+        if(!isNaN(bgX)){
+            bgTexture.offset.x = bgX
+            bgTexture.needsUpdate = true
+        }
+        if(!isNaN(bgY)){
+            bgTexture.offset.y = bgY
+            bgTexture.needsUpdate = true
+        }
+    })
+
     useEffect(()=>{
         bgTexture.colorSpace = SRGBColorSpace
-        cover( bgTexture, window.innerWidth / window.innerHeight );
+        bgTexture.wrapS = RepeatWrapping
+        bgTexture.wrapT =  RepeatWrapping
+        bgTexture.repeat.x = ((window.innerWidth / window.innerHeight) ) * (fov[0] * 1.0 / 360.0);
+        bgTexture.repeat.y = ((window.innerWidth / window.innerHeight) ) * (fov[1] * (1.0 / 180.0));
         bgTexture.needsUpdate = true
         scene.background = bgTexture
         scene.environment = bgTexture
@@ -66,6 +75,7 @@ function MainCanvas({resolution = [320, 240], jitterStrength = 0.75}: PSXCanvasP
 
     return(
     <Canvas className="w-auto max-h-screen overflow-hidden" dpr={0.25} gl={{antialias: false, depth: true, logarithmicDepthBuffer: true}} style={{imageRendering: 'pixelated'}}>
+        <Background texturePath="n64_bg.jpg"/>
         <PerspectiveCamera makeDefault={true} position={[0, 0, 1]} far={20} near={0.1}/>
         <CameraShake intensity={1} maxPitch={0.1} maxYaw={0.1} maxRoll={0.1}/>
         <EffectComposer depthBuffer={true} resolutionScale={320/240}>
