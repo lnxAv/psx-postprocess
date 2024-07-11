@@ -37,19 +37,15 @@ export function Rebeca(props: JSX.IntrinsicElements['group']) {
     }
   }, [] )
   
-  useFrame((state, delta)=>{
-    if(group.current){
-      group.current.rotation.y = state.clock.getElapsedTime() * 0.5
-      group.current.position.z = Math.min(-Math.sin(state.clock.getElapsedTime() * 0.5) * 0.2, 0.6)
-    }
-  })
+
+  
   return (
     <group ref={group} {...props} dispose={null}>
       <group name="AuxScene">
         <group name="Scene">
           <group name="Character">
             <primitive object={nodes.root} />
-            <skinnedMesh name="Cube" geometry={nodes.Cube.geometry} skeleton={nodes.Cube.skeleton} castShadow receiveShadow onClick={(e)=>actions.Look?.fadeIn(0.5).play()}>
+            <skinnedMesh name="Cube" geometry={nodes.Cube.geometry} skeleton={nodes.Cube.skeleton} castShadow receiveShadow>
               <meshStandardMaterial map={texture} map-flipY={false} side={THREE.DoubleSide} depthTest={true} />
             </skinnedMesh>
           </group>
