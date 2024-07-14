@@ -20,12 +20,12 @@ type PSXBackgroundProps = {
 export const PSXBackground = ({texturePath, movement = BackgroundMovement.NONE, fov = [180, 90]} : PSXBackgroundProps)=>{
     // based on https://godotshaders.com/shader/n64-style-skybox/
     const {scene} = useThree()
-    const tempVec = useRef(new Vector3())
+    const vec3 = useRef(new Vector3())
     const bgTexture = useTexture(texturePath)
     const mousePos = useRef([0,0])
 
     useFrame(({camera}, d)=>{
-        const [x, y] = movementInfluence(camera)
+        const [x, y] = getPosMovement(camera)
         let bgX = -x * -(1 / Math.PI) 
         let bgY =  (y * 0.5) * -(1 / (Math.PI / 2 ) ) + 0.5
         // keep centered
@@ -38,13 +38,18 @@ export const PSXBackground = ({texturePath, movement = BackgroundMovement.NONE, 
         }
     })
     
-    const updateBg = useCallback(() => {
+    /* Update the background dimensions based on the fov*/
+    const setBgDimensions = useCallback(() => {
         bgTexture.repeat.x =  (fov[0] * 1.0 / 360.0);
         bgTexture.repeat.y = (fov[1] * (1.0 / 180.0));
         bgTexture.needsUpdate = true
     }, [bgTexture, fov])
 
-    const movementInfluence = (camera: Camera) =>{
+    /* Get the position and movement of the camera 
+    * @param camera The camera to get the position and movement from
+    * @returns A [x,y] position based on the requested movement
+    */
+    const getPosMovement = (camera: Camera) =>{
         let x = 0
         let y = 0
         switch(movement){
@@ -53,7 +58,7 @@ export const PSXBackground = ({texturePath, movement = BackgroundMovement.NONE, 
                 y = Math.asin( mousePos.current[1] )
                 return [x,y]
             case BackgroundMovement.CAMERA:
-                let {x: cameraX, y: cameraY} = camera.getWorldDirection(tempVec.current)
+                let {x: cameraX, y: cameraY} = camera.getWorldDirection(vec3.current)
                 x = cameraX
                 y =  -cameraY
                 return [x,y]
@@ -66,10 +71,10 @@ export const PSXBackground = ({texturePath, movement = BackgroundMovement.NONE, 
         bgTexture.colorSpace = SRGBColorSpace
         bgTexture.wrapS = RepeatWrapping
         bgTexture.wrapT =  RepeatWrapping
-        updateBg()
+        setBgDimensions()
         scene.background = bgTexture
         scene.environment = bgTexture
-    },[bgTexture, scene, updateBg])
+    },[bgTexture, scene, setBgDimensions])
 
     useEffect(()=> {
         if(movement === BackgroundMovement.MOUSE){

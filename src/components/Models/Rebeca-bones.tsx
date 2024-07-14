@@ -8,7 +8,6 @@ import * as THREE from 'three'
 import React, { useEffect, useRef } from 'react'
 import { useGLTF, useAnimations, useTexture } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
-import { useFrame } from '@react-three/fiber'
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -36,8 +35,6 @@ export function Rebeca(props: JSX.IntrinsicElements['group']) {
       actions.Stand.play()
     }
   }, [] )
-  
-
   
   return (
     <group ref={group} {...props} dispose={null}>
