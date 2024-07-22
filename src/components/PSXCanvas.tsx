@@ -1,17 +1,17 @@
 'use client'
 
-import React, { Suspense, useLayoutEffect, useRef } from "react";
+import React, { Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Rebeca } from "./Models/Rebeca-bones";
 import { MathUtils, ShaderChunk} from "three";
-import { OrbitControls, PerspectiveCamera, useTexture } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { EffectComposer, ToneMapping } from '@react-three/postprocessing'
 import { Dithering, DitheringPattern } from "./Shaders/PostProcessing/Dithering";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
 import { CRTMonitor } from "./Shaders/PostProcessing/CRTMonitor";
 import { DepthCueing } from "./Shaders/PostProcessing/DepthCueing";
 import { BackgroundMovement, PSXBackground } from "./PSXBackground";
-import { getRandomParticlesPosition, getRandomParticlesPositionSpherical, getRandomParticlesSizes, PSXParticles, usePSXParticlesEmitter } from "./PSXParticles";
+import { getRandomParticlesPositionSpherical, getRandomParticlesSizes, getRandomTimesMultipliers, PSXParticles, usePSXParticlesEmitter } from "./PSXParticles";
 import { SparkleImpl } from "./Shaders/Sparkle";
 import { Assets, AssetsLoader } from "./Utils/AssetsLoader";
 
@@ -48,23 +48,26 @@ function PSXCanvas({resolution = [320, 240], jitterStrength = 0.8, dpr=0.25}: PS
     }, [jitterStrength, resolution])
 
     const handleParticleClick = () => {
-        emitter.addParticleGroup({
-            id: 'demo',
-            count: 100 * dpr,
-            material: new SparkleImpl({
-                size: 0.15,
-                pixelRatio: dpr,
-                texture: assets.current.get('starParticles')?.textures
-            }),
-            settings: {
-                depthWrite: false,
-                transparent: true,
-            },
-            attributes: {
-                position: getRandomParticlesPositionSpherical(100 * dpr, 0.5),
-                aSize:  getRandomParticlesSizes(100 * dpr),
-            }
-        })
+            emitter.addParticleGroup({
+                id: 'demo',
+                count: 100 ,
+                duration: 2100,
+                mat: new SparkleImpl({
+                    size: 0.15,
+                    pixelRatio: dpr,
+                    duration: 2000,
+                    texture: assets.current.get('starParticles')?.textures
+                }),
+                settings: {
+                    depthWrite: false,
+                    transparent: true,
+                },
+                attributes: {
+                    position: getRandomParticlesPositionSpherical(100 , 0.5),
+                    aSize:  getRandomParticlesSizes(100 ),
+                    aTimeMultiplier: getRandomTimesMultipliers(100 ),
+                }
+            })
     }
 
     return(
