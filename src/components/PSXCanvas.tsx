@@ -1,19 +1,21 @@
 'use client'
 
-import React, { Suspense, useEffect, useLayoutEffect, useRef } from "react";
+import React, { Suspense,  useLayoutEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Rebeca } from "./Models/Rebeca-bones";
-import { MathUtils, ShaderChunk} from "three";
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { ShaderChunk} from "three";
+import { FirstPersonControls, OrbitControls, PerspectiveCamera, PointerLockControls } from "@react-three/drei";
 import { EffectComposer, ToneMapping } from '@react-three/postprocessing'
 import { Dithering, DitheringPattern } from "./Shaders/PostProcessing/Dithering";
 import { BlendFunction, ToneMappingMode } from "postprocessing";
 import { CRTMonitor } from "./Shaders/PostProcessing/CRTMonitor";
 import { DepthCueing } from "./Shaders/PostProcessing/DepthCueing";
-import { BackgroundMovement, PSXBackground } from "./PSXBackground";
+// import { BackgroundMovement, PSXBackground } from "./PSXBackground";
 import { getRandomParticlesPositionSpherical, getRandomParticlesSizes, getRandomTimesMultipliers, PSXParticles, usePSXParticlesEmitter } from "./PSXParticles";
 import { SparkleImpl } from "./Shaders/Sparkle";
 import { Assets, AssetsLoader } from "./Utils/AssetsLoader";
+import { House_Min } from "./Models/Scene_Tiny";
+import { House_Full } from "./Models/Scene_Full";
+import FirstLookControls from "./FirstLookControls";
 
 type PSXCanvasProps = {
     resolution: [number, number],
@@ -21,7 +23,7 @@ type PSXCanvasProps = {
     dpr?: number
 }
 
-function PSXCanvas({resolution = [320, 240], jitterStrength = 0.8, dpr=0.25}: PSXCanvasProps) {
+function PSXCanvas({resolution = [320, 240], jitterStrength = 0.8, dpr=1}: PSXCanvasProps) {
     const assets = useRef<Assets>(new Map([]))
     const emitter = usePSXParticlesEmitter()
     //~ MODIFY ENGINE VERTEX SHADER (by godot - Grau)
@@ -73,21 +75,19 @@ function PSXCanvas({resolution = [320, 240], jitterStrength = 0.8, dpr=0.25}: PS
     return(
     <Canvas onClick={handleParticleClick} className="w-auto max-h-screen overflow-hidden" dpr={dpr} gl={{antialias: false, depth: true}} style={{imageRendering: 'pixelated'}}>
         <AssetsLoader assetsLinks={{ starParticles: {texture: 'star.png', settings: {textureFlipY: false}}}} onLoad={(loadedAssets)=> { assets.current = loadedAssets }}/>
-        <PSXBackground texturePath="n64_bg.jpg" movement={BackgroundMovement.CAMERA}/>
+        <PerspectiveCamera rotation={[0, -1.55, 0]} far={20} near={0.1}/>
+        <FirstLookControls />
         <PSXParticles />
-        <PerspectiveCamera makeDefault={true} position={[0, 0, 1]} far={20} near={0.1}/>
-        <OrbitControls />
         <EffectComposer depthBuffer={true} resolutionScale={320/240}>
             <ToneMapping mode={ToneMappingMode.NEUTRAL} />
             <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.2} colorDepth={16} blendFunction={BlendFunction.SCREEN}/>
             <DepthCueing nearOffset={0.03} fogDensity={0.0} />
             <CRTMonitor vignetteOpacity={1.6} gammaCorrection={0.9} screenClampRange={1.2}/>
         </EffectComposer>
-        <spotLight intensity={Math.PI * 1.5} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />
-        <directionalLight intensity={0.2} position={[8, 20, 8]} castShadow />
+        <ambientLight intensity={15} />
         <Suspense fallback={null}>
-            <mesh position={[0, -1.7,0]} rotation={[0,MathUtils.degToRad(10),0]}>
-                <Rebeca />
+            <mesh position={[-1.6, -1.25, -1.75]}>
+                <House_Full/>
             </mesh>
         </Suspense>
     </Canvas>
