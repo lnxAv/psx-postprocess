@@ -129,7 +129,7 @@ const fragmentShader = /* glsl */`
         reduce_color(c.g, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1),
         reduce_color(c.b, (dithering_value - uDarkness) * dithering_value + uDarkness, uColorDepth-1)
       );
-      outputColor = vec4(ditheredColor, 1.);
+      outputColor = vec4(ditheredColor, 0.);
   }
 `
 

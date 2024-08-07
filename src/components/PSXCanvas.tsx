@@ -2,7 +2,6 @@
 
 import React, { Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Rebeca } from "./Models/Rebeca-bones";
 import { MathUtils, ShaderChunk} from "three";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { EffectComposer, ToneMapping } from '@react-three/postprocessing'
@@ -14,6 +13,7 @@ import { BackgroundMovement, PSXBackground } from "./PSXBackground";
 import { getRandomParticlesPositionSpherical, getRandomParticlesSizes, getRandomTimesMultipliers, PSXParticles, usePSXParticlesEmitter } from "./PSXParticles";
 import { SparkleImpl } from "./Shaders/Sparkle";
 import { Assets, AssetsLoader } from "./Utils/AssetsLoader";
+import { Model } from "./Models/Leafs";
 
 type PSXCanvasProps = {
     resolution: [number, number],
@@ -73,21 +73,18 @@ function PSXCanvas({resolution = [320, 240], jitterStrength = 0.8, dpr=0.25}: PS
     return(
     <Canvas onClick={handleParticleClick} className="w-auto max-h-screen overflow-hidden" dpr={dpr} gl={{antialias: false, depth: true}} style={{imageRendering: 'pixelated'}}>
         <AssetsLoader assetsLinks={{ starParticles: {texture: 'star.png', settings: {textureFlipY: false}}}} onLoad={(loadedAssets)=> { assets.current = loadedAssets }}/>
-        <PSXBackground texturePath="n64_bg.jpg" movement={BackgroundMovement.CAMERA}/>
         <PSXParticles />
-        <PerspectiveCamera makeDefault={true} position={[0, 0, 1]} far={20} near={0.1}/>
+        <PerspectiveCamera makeDefault={true} position={[0, 0, 0.1]} far={20} near={0.1}/>
         <OrbitControls />
         <EffectComposer depthBuffer={true} resolutionScale={320/240}>
             <ToneMapping mode={ToneMappingMode.NEUTRAL} />
             <Dithering pattern={DitheringPattern.BAYER_4} darkness={0.2} colorDepth={16} blendFunction={BlendFunction.SCREEN}/>
             <DepthCueing nearOffset={0.03} fogDensity={0.0} />
-            <CRTMonitor vignetteOpacity={1.6} gammaCorrection={0.9} screenClampRange={1.2}/>
+            <CRTMonitor curvature={[100,100]} vignetteOpacity={0} gammaCorrection={0.9} screenClampRange={1.2}/>
         </EffectComposer>
-        <spotLight intensity={Math.PI * 1.5} position={[-1, -1, 1.5]} rotation={[1,-2,-1]} castShadow />
-        <directionalLight intensity={0.2} position={[8, 20, 8]} castShadow />
         <Suspense fallback={null}>
-            <mesh position={[0, -1.7,0]} rotation={[0,MathUtils.degToRad(10),0]}>
-                <Rebeca />
+            <mesh position={[0,-0.7,-2.8]} rotation={[0,MathUtils.degToRad(-90),0]}>
+               <Model/>
             </mesh>
         </Suspense>
     </Canvas>
